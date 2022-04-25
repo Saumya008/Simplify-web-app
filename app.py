@@ -1,21 +1,23 @@
-from flask import Flask, render_template, url_for, redirect
-from flask import Flask, jsonify
+from flask import *;
+#from flask import Flask, jsonify
 from flask_simple_geoip import SimpleGeoIP
-import sqlite3
-from distutils.log import debug
-from enum import unique
-from argon2 import hash_password
-import bcrypt
-from django import db
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin, login_required, login_user, LoginManager, logout_user, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, Length, ValidationError
-from flask_bcrypt import Bcrypt
+#import sqlite3
+#from distutils.log import debug
+#from enum import unique
+from pyrebase import pyrebase
+#from twilio.rest import *
+#import random
+#from argon2 import hash_password
+#import bcrypt
+#from django import db
+#from flask_sqlalchemy import SQLAlchemy
+#from flask_login import UserMixin, login_required, login_user, LoginManager, logout_user, current_user
+#from flask_wtf import FlaskForm
+#from wtforms import StringField, PasswordField, SubmitField
+#from wtforms.validators import InputRequired, Length, ValidationError
 
 
-app = Flask(__name__)
+"""
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -61,12 +63,35 @@ class LoginForm(FlaskForm):
         min=4, max=30)], render_kw={"placeholder": "Password"})
     submit = SubmitField("Submit")
 
+"""
+app = Flask(__name__)
+app.secret_key = "super secret key"
+
+config = {
+  "apiKey": "AIzaSyBRGnBkPyTq2gDA6bb0hZ5j1qeOcwgWDYE",
+  "authDomain": "soumya-f5929.firebaseapp.com",
+  "projectId": "soumya-f5929",
+  "storageBucket": "soumya-f5929.appspot.com",
+  "messagingSenderId": "46421030000",
+  "appId": "1:46421030000:web:2d8b68efbf670151a370b5",
+  "measurementId": "G-W7WY4R16RH",
+  "databaseURL" : ""
+}
+firebase = pyrebase.initialize_app(config)
+auth = firebase.auth()
+
+
+
+
+
+
 
 @app.route("/")
+
 def index():
     return render_template('index.html')
 
-
+"""
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -78,21 +103,56 @@ def login():
                 login_user(user)
                 return redirect(url_for('dashboard'))
     return render_template('login.html', form=form)
+"""
 
-
-@app.route("/dashboard", methods=['GET', 'POST'])
-@login_required
+@app.route("/dashboard", methods=['POST'])
+#@login_required
 def dashboard():
     return render_template('dashboard.html')
 
 
 @app.route("/logout", methods=['GET', 'POST'])
-@login_required
+#@login_required
 def logout():
-    logout_user()
+    auth.current_user = None
     return redirect(url_for('login'))
 
+@app.route("/signup",methods=['GET','POST'])
+def signup():
+    unsuccessful="User Already exists!"
+    if request.method=='POST':
+        if request.form.get('id')=='signup':
+                   email=request.form['name']
+                   password=request.form['pass']
+                   try:
+                     user=auth.create_user_with_email_and_password(email,password)
+                     return redirect(url_for('login'))
+                   except:
+                     return render_template('register.html',us=unsuccessful)
+    return render_template('register.html')
+        
 
+@app.route("/login",methods=['GET','POST'])
+def login():
+    unsuccessful="invalid credentials"
+    if request.method=='POST':
+        if request.form.get('id')=='login':
+            email=request.form['name']
+            password=request.form['pass']
+            try:
+                user=auth.sign_in_with_email_and_password(email,password)
+                return render_template('dashboard.html')
+            except:
+                return render_template('login.html',us=unsuccessful)
+        if request.form.get('id')=='forgot':
+            email=request.form['name']
+            auth.send_password_reset_email(email)
+            #flash("Check your email to reset!")
+            return redirect(url_for('login'))  
+    return render_template('login.html')
+
+
+"""
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
@@ -105,7 +165,7 @@ def register():
         return redirect(url_for('login'))
 
     return render_template('register.html', form=form)
-
+"""
 
 @app.route("/about")
 def about():
